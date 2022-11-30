@@ -115,7 +115,7 @@ export const Form = () => {
         disabled={loading}
         className="relative inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
       >
-        Generate CSR
+        {loading ? 'Generating files...' : 'Generate CSR'}
         {loading && (
           <svg
             className="w-5 h-5 ml-3 mr-3 text-indigo-600 animate-spin"

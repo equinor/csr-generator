@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker:build": "docker build -t envis/csr-generator -f Dockerfile .",
+    "docker:run": "docker run -p 3000:3000 envis/csr-generator"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.13",
