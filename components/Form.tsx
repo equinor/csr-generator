@@ -1,67 +1,58 @@
-import React, {
-  InputHTMLAttributes,
-  ReactComponentElement,
-  useEffect,
-  useState,
-} from 'react';
-import { FieldError, FieldErrorsImpl, Merge, useForm } from 'react-hook-form';
-import { ExclamationCircleIcon, PlusIcon } from '@heroicons/react/20/solid';
+import React, { useState } from 'react';
+import { FieldValues, useForm } from 'react-hook-form';
+import { PlusIcon } from '@heroicons/react/20/solid';
+import Input from './Input';
 
-type InputProps = {
-  label: string;
-  error?: FieldError | Merge<FieldError, FieldErrorsImpl<any>> | undefined;
-  errorMessage?: string;
-} & InputHTMLAttributes<HTMLInputElement>;
-
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, errorMessage, ...props }: InputProps, ref) => (
-    <div className="px-1">
-      <label
-        htmlFor={props.id}
-        className="block text-sm font-medium text-gray-700"
-      >
-        {label}
-      </label>
-      <div className="relative mt-1 rounded-md shadow-sm">
-        <input
-          ref={ref}
-          className={`block w-full pr-10 sm:text-sm rounded-md focus:outline-none ${
-            error
-              ? 'text-red-900 placeholder-red-300 border-red-300 focus:border-red-500  focus:ring-red-500'
-              : 'border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500'
-          } `}
-          aria-invalid="true"
-          aria-describedby={`${props.id}-error`}
-          {...props}
-        />
-        {error && (
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <ExclamationCircleIcon
-              className="w-5 h-5 text-red-500"
-              aria-hidden="true"
-            />
-          </div>
-        )}
-      </div>
-      {error && (
-        <p className="mt-2 text-sm text-red-600" id={`${props.id}-error`}>
-          {errorMessage}
-        </p>
-      )}
-    </div>
-  ),
-);
-
-Input.displayName = 'Input';
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const Form = () => {
   const [altDomains, setAltDomains] = useState(0);
-
+  const [loading, setLoading] = useState(false);
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
+
+  const onSubmit = async (data: FieldValues) => {
+    setLoading(true);
+
+    const createBlob = (blob: Blob, filename: string) => {
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    };
+
+    // Removes alt domains without a value
+    const filteredData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== ''),
+    );
+
+    const response = await fetch('/api/generate', {
+      method: 'post',
+      body: JSON.stringify(filteredData),
+    });
+
+    const { key, csr } = await response.json();
+
+    await fetch(`/${key}`)
+      .then((res) => res.blob())
+      .then((blob) => {
+        createBlob(blob, 'serverkey.key');
+      });
+
+    await fetch(`/${csr}`)
+      .then((res) => res.blob())
+      .then((blob) => {
+        createBlob(blob, 'servercsr.csr');
+      });
+
+    setLoading(false);
+  };
 
   const rules = {
     pattern: /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/,
@@ -70,9 +61,7 @@ export const Form = () => {
   return (
     <form
       className="grid w-full gap-4"
-      onSubmit={handleSubmit((data) => {
-        console.log(data);
-      })}
+      onSubmit={handleSubmit((data) => onSubmit(data))}
     >
       <Input
         id="domain"
@@ -83,6 +72,7 @@ export const Form = () => {
         errorMessage="Domain name is invalid"
         {...register('domain', { required: true, ...rules })}
       />
+
       <div className="flex justify-end">
         <button
           onClick={(e) => {
@@ -96,7 +86,7 @@ export const Form = () => {
           <PlusIcon className="w-5 h-5 ml-2 -mr-1" aria-hidden="true" />
         </button>
       </div>
-      <div className="max-h-[500px] grid gap-4 overflow-auto pb-6">
+      <div className="max-h-[230px] grid gap-4 pb-2 overflow-auto mb-4">
         {Array.from(Array(altDomains)).map((_, i) => {
           const index = i + 1;
           return (
@@ -104,7 +94,7 @@ export const Form = () => {
               autoFocus
               key={index}
               id={`altDomain${index}`}
-              placeholder={`www.example-${index}.com`}
+              placeholder={'example.com'}
               label={`Alt domain #${index}`}
               type="text"
               error={errors[`altDomain${index}`]}
@@ -114,11 +104,40 @@ export const Form = () => {
           );
         })}
       </div>
+      <p className="font-light text-gray-500">
+        <span className="mr-2 font-semibold uppercase">Tip:</span>We recommend
+        adding at least one alternative domain to cover non-www and www cases.
+        If the main domain is <strong>www.example.com</strong>, add{' '}
+        <strong>example.com</strong> as alternative domain.
+      </p>
       <button
         type="submit"
-        className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        disabled={loading}
+        className="relative inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none"
       >
         Generate CSR
+        {loading && (
+          <svg
+            className="w-5 h-5 ml-3 mr-3 text-indigo-600 animate-spin"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        )}
       </button>
     </form>
   );
