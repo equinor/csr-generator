@@ -41,17 +41,18 @@ ENV NODE_ENV production
 # Install openssl
 RUN apk add openssl
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+ENV USER nextjs
+ENV UID 12345
 
-COPY --from=builder /app/public ./public
+RUN addgroup -S "$USER"
+RUN adduser -S --uid "$UID" "$USER"
 
-# Automatically leverage output traces to reduce image size
+COPY --from=builder /app/web/public ./public
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown="$USER":"$USER" /app/web/.next/standalone .
+COPY --from=builder --chown="$USER":"$USER" /app/web/.next/static ./.next/static
 
-USER nextjs
+USER "$UID"
 
 EXPOSE 3000
 
