@@ -3,8 +3,6 @@ import { FieldValues, useForm } from 'react-hook-form';
 import { PlusIcon } from '@heroicons/react/20/solid';
 import Input from './Input';
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const Form = () => {
   const [altDomains, setAltDomains] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -37,20 +35,24 @@ export const Form = () => {
       body: JSON.stringify(filteredData),
     });
 
-    const { key, csr } = await response.json();
+    const { key, csr, error } = await response.json();
 
-    await fetch(`/${key}`)
-      .then((res) => res.blob())
-      .then((blob) => {
-        createBlob(blob, 'serverkey.key');
-      });
+    if (!error) {
+      await fetch(`/${key}`)
+        .then((res) => res.blob())
+        .then((blob) => {
+          createBlob(blob, 'serverkey.key');
+        });
 
-    await fetch(`/${csr}`)
-      .then((res) => res.blob())
-      .then((blob) => {
-        createBlob(blob, 'servercsr.csr');
-      });
-
+      await fetch(`/${csr}`)
+        .then((res) => res.blob())
+        .then((blob) => {
+          createBlob(blob, 'servercsr.csr');
+        });
+    } else {
+      alert(error);
+      console.error('Error: ' + error);
+    }
     setLoading(false);
   };
 
