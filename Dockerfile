@@ -47,7 +47,7 @@ ENV UID 12345
 RUN addgroup -S "$USER"
 RUN adduser -S --uid "$UID" "$USER"
 
-COPY --from=builder /app/web/public ./public
+COPY --from=builder /app/public ./public
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown="$USER":"$USER" /app/.next/standalone .
 COPY --from=builder --chown="$USER":"$USER" /app/.next/static ./.next/static
