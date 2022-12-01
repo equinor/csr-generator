@@ -1,0 +1,15 @@
+apiVersion: radix.equinor.com/v1
+kind: RadixApplication
+metadata:
+  name: csr-generator
+spec:
+  environments:
+    - name: prod
+      build:
+        from: main
+  components:
+    - name: app
+      dockerfilename: app.Dockerfile
+      ports:
+      - name: http
+        port: 3000
