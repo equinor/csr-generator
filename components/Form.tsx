@@ -35,24 +35,15 @@ export const Form = () => {
       body: JSON.stringify(filteredData),
     });
 
-    const { key, csr, error } = await response.json();
+    const result = await response.json();
 
-    if (!error) {
-      await fetch(`/${key}`)
-        .then((res) => res.blob())
-        .then((blob) => {
-          createBlob(blob, 'serverkey.key');
-        });
-
-      await fetch(`/${csr}`)
-        .then((res) => res.blob())
-        .then((blob) => {
-          createBlob(blob, 'servercsr.csr');
-        });
+    if (result.key && result.csr) {
+      createBlob(new Blob([Buffer.from(result.key.data)]), 'serverkey.key');
+      createBlob(new Blob([Buffer.from(result.csr.data)]), 'servercsr.csr');
     } else {
-      alert(error);
-      console.error('Error: ' + error);
+      alert(result.error);
     }
+
     setLoading(false);
   };
 
